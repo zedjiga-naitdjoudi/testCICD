@@ -1,0 +1,62 @@
+name: Build
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v7
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+
+      - name: Cache npm
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Lancer le build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Vérifier le build
+        run: |
+          if [ ! -f dist/sum.js ]; then
+            echo "::error file=build.js::dist/sum.js n'a pas été généré"
+            exit 1
+          fi
+          echo "dist/sum.js présent"
+
+      - name: Sauvegarder dist/ en artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: dist
+
+      - name: Résumé du build
+        if: always()
+        run: |
+          echo "## Résumé du build" >> $GITHUB_STEP_SUMMARY
+          echo "- Statut : ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Lancé par : ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branche : ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit : ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Run n° : ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Node : $(node -v)" >> $GITHUB_STEP_SUMMARY
+          if [ -d dist ]; then
+            echo "- Taille de dist/ : $(du -sh dist | cut -f1)" >> $GITHUB_STEP_SUMMARY
+            echo "### Fichiers générés" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            ls -la dist >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
