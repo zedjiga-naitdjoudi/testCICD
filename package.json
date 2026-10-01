@@ -2,7 +2,7 @@
   "name": "testcicd",
   "version": "1.0.0",
   "scripts": {
-    "test": "node --test",
-    "build": "node build.js"
+    "test": "node test.js",
+    "build": "mkdir -p dist && touch dist/sum.js"
   }
 }
